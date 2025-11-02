@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 import schedule
 import time
 from datetime import datetime
-import os
+from zoneinfo import ZoneInfo
 
+# --------- 2. TELEGRAM ----------
 def send_telegram(text: str):
     token = os.getenv("TELEGRAM_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
@@ -16,10 +17,7 @@ def send_telegram(text: str):
         raise RuntimeError("TELEGRAM_CHAT_ID manquant dans .env")
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {
-        "chat_id": chat_id, 
-        "text": text
-    }
+    payload = {"chat_id": chat_id, "text": text}
 
     try:
         resp = requests.post(url, data=payload, timeout=10)
@@ -35,19 +33,14 @@ def send_telegram(text: str):
     except requests.exceptions.ConnectionError as e:
         raise RuntimeError("Connexion Telegram échouée") from e
 
-# --------- 2. CHARGER .env ----
+# --------- 3. CHARGER .env ----
 load_dotenv()
 
-# --------- 3. FONCTION API ----
-def get_btc_price(vs_currency="usd"):
-    api_key = os.getenv("COINGECKO_API_KEY")
-    if not api_key:
-        raise RuntimeError("COINGECKO_API_KEY manquante dans .env")
-    
+# --------- 4. API COINGECKO ----
 def get_btc_price_with_change(vs_currency="usd"):
     """
-    Retourne(price, change_24h_pct) pour bitcoin dans la devise donnée.
-    change_24h_pct est un float (ex: -1.23 pour 1.23%).
+    Retourne (price, change_24h_pct) pour bitcoin dans la devise donnée.
+    change_24h_pct est un float (ex: -1.23 pour -1,23%).
     """
     api_key = os.getenv("COINGECKO_API_KEY")
     if not api_key:
@@ -86,30 +79,17 @@ def get_btc_price_with_change(vs_currency="usd"):
     except Exception as e:
         raise RuntimeError(f"Schéma JSON inattendu: {data}") from e
 
-# --------- 4. FONCTION MAIN ----
-def main():
-
-    # Exécution immédiate (facultatif)
-    job_send_price()
-    # Puis à chaque HH:00
-    schedule.every().hour.at(":00").do(job_send_price)
-
-    print("⏱️ Bot planifié : envoi immédiat puis toutes les heures à HH:00. Ctrl+C pour arrêter.")
-    
-    try:
-        while True:
-            schedule.run_pending()
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("\n🛑 Arrêt demandé par l'utilisateur.")
-
-
+# --------- 5. JOB D'ENVOI ----
 def job_send_price():
     """Récupère le prix, envoie sur Telegram, gère les alertes simples."""
     try:
         price_usd, chg = get_btc_price_with_change("usd")
         direction = "🔺" if chg >= 0 else "🔻"
-        msg = f"BTC = {price_usd:,.2f} USD  ({direction} {chg:+.2f}% / 24h) — {datetime.now():%H:%M:%S}"
+
+        # Heure locale Paris
+        now_paris = datetime.now(ZoneInfo("Europe/Paris"))
+
+        msg = f"BTC = {price_usd:,.2f} USD ({direction} {chg:+.2f}% / 24h) — {now_paris:%H:%M:%S}"
         msg = msg.replace(",", " ")
         print(msg)
         send_telegram(msg)
@@ -131,12 +111,37 @@ def job_send_price():
                 print("[WARN] ALERT_MAX_USD invalide (non numérique)")
 
     except RuntimeError as e:
-        # Erreur API/Telegram -> log + notification sobre
         err = f"[ERREUR job] {e}"
         print(err)
-        # Tu peux décider d'envoyer aussi l'erreur sur Telegram si tu veux :
+        # Optionnel:
         # send_telegram(err)
 
-# --------- 5. POINT D’ENTRÉE ---
+# --------- 6. CHECKER HEURE PARIS ----
+def check_scheduled_tasks():
+    now = datetime.now(ZoneInfo("Europe/Paris"))
+
+    # Envoi à 09:00 (heure de Paris)
+    if now.hour == 9 and now.minute == 0:
+        job_send_price()
+
+    # Envoi toutes les 4 heures (09h, 13h, 17h, 21h, 01h, 05h)
+    # Note : 9,13,17,21,1,5 -> hour % 4 == 1
+    elif now.hour % 4 == 1 and now.minute == 0:
+        job_send_price()
+
+# --------- 7. MAIN / SCHEDULER ----
+def main():
+    # Vérifie chaque minute et déclenche selon l'heure Europe/Paris
+    schedule.every(1).minutes.do(check_scheduled_tasks)
+
+    print("Bot lancé : vérification chaque minute (heure Europe/Paris)")
+    try:
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Arrêt manuel.")
+
+# --------- 8. POINT D’ENTRÉE ----
 if __name__ == "__main__":
     main()
