@@ -1,67 +1,41 @@
 # BTC Telegram Bot
+This project is a Python script that sends the current Bitcoin price to a Telegram chat. It uses the free CoinGecko API to fetch:
+- Bitcoin price in USD
+- 24-hour price change (percentage)
 
-Ce projet est un script Python qui envoie automatiquement le prix du Bitcoin sur Telegram.  
-Les données sont récupérées via l'API gratuite de CoinGecko.  
-Le bot envoie :
-- le prix du Bitcoin en USD,
-- la variation du prix sur 24 heures.
-
----
-
-## 1. Installation et utilisation en local
-
-### a) Cloner le projet
-```bash
+## 1. Local Setup
+a) Clone the repository:
 git clone https://github.com/Safwane2711/btc-telegram-bot.git
 cd btc-telegram-bot
-```
 
-### b) Installer les dépendances
-```bash
+b) Install dependencies:
 pip install -r requirements.txt
-```
 
-### c) Créer un fichier `.env` (à partir de `.env.example`)
-Exemple de contenu :
-```
-COINGECKO_API_KEY=ta_clé_api
-TELEGRAM_TOKEN=ton_token_telegram
-TELEGRAM_CHAT_ID=ton_chat_id
-```
+c) Create a `.env` file (based on `.env.example`) and add:
+COINGECKO_API_KEY=your_api_key
+TELEGRAM_TOKEN=your_telegram_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
 
-### d) Lancer le bot
-```bash
+d) Run the bot:
 python main.py
-```
 
-Le bot enverra un message immédiatement, puis une fois par heure.
+The bot will send a price update immediately, then every hour.
 
----
-
-## 2. Déploiement sur le cloud (Railway)
-
-1. Pousser le projet sur GitHub  
-2. Créer un projet sur https://railway.app  
-3. Connecter le dépôt GitHub  
-4. Ajouter les variables d’environnement (.env) dans Railway  
-5. Indiquer la commande de lancement :
-```bash
+## 2. Deploy on Railway (Cloud)
+1. Push this project to GitHub
+2. Go to https://railway.app and create a new project
+3. Connect your GitHub repository
+4. Add environment variables from `.env` in Railway
+5. Set the start command:
 python main.py
-```
 
-Le bot tournera alors 24h/24, même si l'ordinateur est éteint.
+Once deployed, the bot runs 24/7, even if your computer is turned off.
 
----
+## 3. Possible Improvements
+- Add EUR or multiple currencies
+- Save price data to a CSV file
+- Add Telegram commands (/price, /help, etc.)
+- Generate daily summary or price graphs
 
-## 3. Améliorations possibles
-
-- Ajouter l’EUR en plus de l’USD  
-- Ajouter des commandes Telegram (/price, /help, etc.)  
-- Sauvegarder les prix dans un fichier CSV  
-- Ajouter un graphique ou une interface web
-
----
-
-## Auteur
-
-Projet réalisé par Safwane Eidel, dans le but d’apprendre Python.
+## Author
+Project by Safwane Eidel, created to learn Python.
